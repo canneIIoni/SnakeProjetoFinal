@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>  // Adicionado para a função sleep
+#include <termios.h>
+#include <fcntl.h>
 
 // Definição de estruturas
 typedef struct Node {
@@ -26,17 +28,59 @@ void moveSnake(Snake* snake, int dx, int dy);
 void printBoard(Snake* snake, Food food);
 void gameOver();
 
+// Funções para a comida
+Food generateFood();
+
+int kbhit();  // Adicionada a declaração da função kbhit
+
+int checkCollision(Snake* snake);  // Adicionada a declaração da função checkCollision
+int checkFoodCollision(Snake* snake, Food food);  // Adicionada a declaração da função checkFoodCollision
+
 int main() {
     Snake* snake = initializeSnake(5, 5);
     Food food = {10, 10}; // Posição inicial da comida
 
+    char direction = 'D'; // Inicialmente, a cobra se move para a direita
+
     // Loop principal do jogo
     while (1) {
         // Lógica do jogo
-        int dx = 1, dy = 0;  // Movimento inicial para a direita
+        if (kbhit()) {
+            direction = getchar();
+        }
+
+        int dx = 0, dy = 0;
+
+        // Atualizar a direção com base na entrada
+        switch (direction) {
+            case 'W':
+                dy = -1;
+                break;
+            case 'S':
+                dy = 1;
+                break;
+            case 'A':
+                dx = -1;
+                break;
+            case 'D':
+                dx = 1;
+                break;
+        }
 
         // Mover a cobra
         moveSnake(snake, dx, dy);
+
+        // Verificar colisão com a comida
+        if (checkFoodCollision(snake, food)) {
+            // Lógica para quando a cobra come a comida
+            food = generateFood(); // Gerar nova posição para a comida
+        }
+
+        // Verificar colisão com a parede ou consigo mesma
+        if (checkCollision(snake)) {
+            gameOver();
+            break;
+        }
 
         // Imprimir o tabuleiro
         printBoard(snake, food);
@@ -127,4 +171,78 @@ void moveSnake(Snake* snake, int dx, int dy) {
     // Remove o último nó da cauda
     free(current);
     prev->next = NULL;
+}
+
+int kbhit() {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    // Obter as configurações atuais do terminal
+    tcgetattr(STDIN_FILENO, &oldt);
+
+    // Configurar o terminal para não bloquear a entrada
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // Obter o estado do arquivo de entrada padrão e configurá-lo para não bloquear
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    // Tentar ler um caractere
+    ch = getchar();
+
+    // Restaurar as configurações originais do terminal e do arquivo
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    // Se um caractere foi lido, desfazer o buffer e retornar 1
+    if (ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
+    }
+
+    return 0;
+}
+
+// Função para verificar colisão com a parede ou consigo mesma
+int checkCollision(Snake* snake) {
+    int headX = snake->head->x;
+    int headY = snake->head->y;
+
+    // Verificar colisão com a parede
+    if (headX < 0 || headX >= 20 || headY < 0 || headY >= 20) {
+        return 1;
+    }
+
+    // Verificar colisão consigo mesma
+    Node* current = snake->head->next; // Começar a partir do segundo nó
+    while (current != NULL) {
+        if (headX == current->x && headY == current->y) {
+            return 1;
+        }
+        current = current->next;
+    }
+
+    return 0;
+}
+
+// Função para gerar comida em uma posição aleatória
+Food generateFood() {
+    Food food;
+    food.x = rand() % 20;
+    food.y = rand() % 20;
+    return food;
+}
+
+// Função para verificar colisão com a comida
+int checkFoodCollision(Snake* snake, Food food) {
+    return (snake->head->x == food.x && snake->head->y == food.y);
+}
+
+// Função para exibir a mensagem de fim de jogo
+void gameOver() {
+    printf("Game Over!\n");
+    exit(0); // ou outra lógica de término de jogo que você deseja
 }
