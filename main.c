@@ -107,11 +107,24 @@ int main() {
           food = generateFood();
       }
 
+
       // Verificar colisão com a parede ou consigo mesma
       if (checkCollision(snake)) {
           gameOver();
           break;
       }
+
+        // Verificar colisão com a comida
+        if (checkFoodCollision(snake, food)) {
+            // Lógica para quando a cobra come a comida
+            food = generateFood(); // Gerar nova posição para a comida
+        }
+
+        // Verificar colisão com a parede ou consigo mesma
+        if (checkCollision(snake)) {
+            gameOver();
+            break;
+        }
 
         // Imprimir o tabuleiro
         printBoard(snake, food);
@@ -249,7 +262,9 @@ void printBoard(Snake* snake, Food food) {
     }
 }
 
+
 // Função para exibir a mensagem de fim de jogo
 void gameOver() {
     printf("Game Over!\n");
+
 }
