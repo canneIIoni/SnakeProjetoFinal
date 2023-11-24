@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>  // Adicionado para a função sleep
 
 // Definição de estruturas
 typedef struct Node {
@@ -18,7 +19,12 @@ typedef struct Food {
 
 // Funções para a cobra
 Snake* initializeSnake(int x, int y);
+void addToSnake(Snake* snake, int x, int y);
+void moveSnake(Snake* snake, int dx, int dy);
+
+// Funções para o jogo
 void printBoard(Snake* snake, Food food);
+void gameOver();
 
 int main() {
     Snake* snake = initializeSnake(5, 5);
@@ -26,6 +32,12 @@ int main() {
 
     // Loop principal do jogo
     while (1) {
+        // Lógica do jogo
+        int dx = 1, dy = 0;  // Movimento inicial para a direita
+
+        // Mover a cobra
+        moveSnake(snake, dx, dy);
+
         // Imprimir o tabuleiro
         printBoard(snake, food);
 
@@ -87,4 +99,32 @@ void printBoard(Snake* snake, Food food) {
         }
         printf("\n");
     }
+}
+
+// Função para adicionar um nó à cobra
+void addToSnake(Snake* snake, int x, int y) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->x = x;
+    newNode->y = y;
+    newNode->next = snake->head;
+    snake->head = newNode;
+}
+
+// Função para mover a cobra
+void moveSnake(Snake* snake, int dx, int dy) {
+    // Adiciona um novo nó à cabeça da cobra
+    addToSnake(snake, snake->head->x + dx, snake->head->y + dy);
+
+    // Atualiza a posição da cauda
+    Node* current = snake->head;
+    Node* prev = NULL;
+
+    while (current->next != NULL) {
+        prev = current;
+        current = current->next;
+    }
+
+    // Remove o último nó da cauda
+    free(current);
+    prev->next = NULL;
 }
